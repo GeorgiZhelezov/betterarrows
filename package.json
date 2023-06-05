@@ -1,0 +1,36 @@
+{
+	"name": "betterarrows",
+	"displayName": "Better Arrows",
+	"version": "0.0.1",
+	"publisher": "gez",
+	"engines": {
+	  "vscode": "^1.60.0"
+	},
+	"categories": [
+	  "Other"
+	],
+	"activationEvents": [
+		"onLanguage:c",
+		"onLanguage:cpp",
+		"onLanguage:csharp",
+		"onLanguage:java",
+		"onLanguage:javascript",
+		"onLanguage:typescript",
+		"onCommand:extension.helloWorld"
+	],
+	"main": "./extension.js",
+	"contributes": {},
+	"scripts": {
+	  "vscode:prepublish": "npm run compile",
+	  "compile": "tsc -p ./",
+	  "watch": "tsc -watch -p ./"
+	},
+	"devDependencies": {
+	  "typescript": "^4.4.4",
+	  "@types/node": "^16.9.4",
+	  "tslint": "^6.1.3",
+	  "vscode": "^1.0.0"
+	},
+	"description": "An extension that replaces \"->\" with \"->\" for use in structs in C and \"=>\" for use in JavaScript and TypeScript"
+  }
+  
