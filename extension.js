@@ -22,65 +22,111 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = void 0;
+exports.deactivate = exports.activate = void 0;
 const vscode = __importStar(require("vscode"));
+let timeout = null;
+function triggerUpdateDecorations(editor) {
+    if (timeout) {
+        clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => updateDecorations(editor), 500);
+}
+function updateDecorations(editor) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const languageId = editor.document.languageId;
+        if (languageId === 'c' || languageId === 'cpp') {
+            const regex = /\.\./g;
+            const text = editor.document.getText();
+            let match;
+            const edits = [];
+            while ((match = regex.exec(text))) {
+                const startPos = editor.document.positionAt(match.index);
+                const endPos = editor.document.positionAt(match.index + match[0].length);
+                const range = new vscode.Range(startPos, endPos);
+                if (!isWithinCodeBlock(editor.document, startPos)) {
+                    // Skip if not within a code block
+                    continue;
+                }
+                const edit = vscode.TextEdit.replace(range, '->');
+                edits.push(edit);
+            }
+            if (edits.length > 0) {
+                yield editor.edit(editBuilder => {
+                    for (const edit of edits) {
+                        editBuilder.replace(edit.range, edit.newText);
+                    }
+                });
+            }
+        }
+        else if (languageId === 'javascript' || languageId === 'typescript' || languageId === 'jsx' || languageId === 'tsx' || languageId === 'csharp') {
+            const regex = /\.\./g;
+            const text = editor.document.getText();
+            let match;
+            const edits = [];
+            while ((match = regex.exec(text))) {
+                const startPos = editor.document.positionAt(match.index);
+                const endPos = editor.document.positionAt(match.index + match[0].length);
+                const range = new vscode.Range(startPos, endPos);
+                if (!isWithinCodeBlock(editor.document, startPos)) {
+                    // Skip if not within a code block
+                    continue;
+                }
+                const edit = vscode.TextEdit.replace(range, '=>');
+                edits.push(edit);
+            }
+            if (edits.length > 0) {
+                yield editor.edit(editBuilder => {
+                    for (const edit of edits) {
+                        editBuilder.replace(edit.range, edit.newText);
+                    }
+                });
+            }
+        }
+    });
+}
+function isWithinCodeBlock(document, position) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const symbols = yield vscode.commands.executeCommand('vscode.executeDocumentSymbolProvider', document.uri);
+        if (symbols) {
+            for (const symbol of symbols) {
+                if (symbol.range && symbol.range.contains(position)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    });
+}
 function activate(context) {
     let activeEditor = vscode.window.activeTextEditor;
     if (activeEditor) {
-        updateDecorations(activeEditor);
+        triggerUpdateDecorations(activeEditor);
     }
     vscode.window.onDidChangeActiveTextEditor(editor => {
         activeEditor = editor;
         if (editor) {
-            updateDecorations(editor);
+            triggerUpdateDecorations(editor);
         }
     }, null, context.subscriptions);
     vscode.workspace.onDidChangeTextDocument(event => {
         if (activeEditor && event.document === activeEditor.document) {
-            updateDecorations(activeEditor);
+            triggerUpdateDecorations(activeEditor);
         }
     }, null, context.subscriptions);
+    if (vscode.window.activeTextEditor) {
+        triggerUpdateDecorations(vscode.window.activeTextEditor);
+    }
 }
 exports.activate = activate;
-const decorationType = vscode.window.createTextEditorDecorationType({
-    after: {
-        contentText: '->'
-    }
-});
-function updateDecorations(editor) {
-    const text = editor.document.getText();
-    const decorations = [];
-    const languageId = editor.document.languageId;
-    if (languageId === 'c' || languageId === 'cpp') {
-        const regex = /\.\./g;
-        let match;
-        while ((match = regex.exec(text))) {
-            const startPos = editor.document.positionAt(match.index);
-            const endPos = editor.document.positionAt(match.index + match[0].length);
-            const range = new vscode.Range(startPos, endPos);
-            const decoration = { range, hoverMessage: 'Replaced with ->' };
-            decorations.push(decoration);
-            const edit = vscode.TextEdit.replace(range, '->');
-            editor.edit(editBuilder => {
-                editBuilder.replace(range, '->');
-            });
-        }
-    }
-    else if (languageId === 'javascript' || languageId === 'typescript' || languageId === 'jsx' || languageId === 'tsx' || languageId === 'csharp') {
-        const regex = /\.\./g;
-        let match;
-        while ((match = regex.exec(text))) {
-            const startPos = editor.document.positionAt(match.index);
-            const endPos = editor.document.positionAt(match.index + match[0].length);
-            const range = new vscode.Range(startPos, endPos);
-            const decoration = { range, hoverMessage: 'Replaced with =>' };
-            decorations.push(decoration);
-            const edit = vscode.TextEdit.replace(range, '=>');
-            editor.edit(editBuilder => {
-                editBuilder.replace(range, '=>');
-            });
-        }
-    }
-    editor.setDecorations(decorationType, decorations);
-}
+function deactivate() { }
+exports.deactivate = deactivate;
